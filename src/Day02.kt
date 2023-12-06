@@ -1,9 +1,9 @@
 class Game(
   val id: Int,
-  val sets: List<Set>,
+  val sets: List<GameSet>,
 )
 
-class Set(
+class GameSet(
   var numberOfRed: Int = 0,
   var numberOfGreen: Int = 0,
   var numberOfBlue: Int = 0,
@@ -18,9 +18,9 @@ fun main() {
 
       val gameId = gameParts[0].replace("Game ", "").trim().toInt()
 
-      val sets: MutableList<Set> = mutableListOf()
+      val sets: MutableList<GameSet> = mutableListOf()
       gameParts[1].split(";").forEach { setPart ->
-        val set = Set()
+        val set = GameSet()
         sets.add(set)
 
         setPart.split(",").forEach { numberPart ->
