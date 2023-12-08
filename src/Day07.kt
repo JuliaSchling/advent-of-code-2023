@@ -1,4 +1,4 @@
-class Line(
+class LineDay7 (
   val bid: Int,
   val typeOfHand: Int,
   val firstCardRank: Int,
@@ -120,12 +120,12 @@ fun main() {
     determineTypeOfHandAction: (hand: String) -> Int,
     determineCardRankAction: (card: Char) -> Int,
   ): Int {
-    val lines: List<Line> = buildList {
+    val lines: List<LineDay7> = buildList {
       input.forEach { line ->
         val lineParts = line.split(" ")
         val hand = lineParts[0]
         add(
-          Line(
+          LineDay7(
             bid = lineParts[1].toInt(),
             typeOfHand = determineTypeOfHandAction(hand),
             firstCardRank = determineCardRankAction(hand[0]),
