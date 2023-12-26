@@ -234,11 +234,11 @@ fun main() {
   }
 
   // test if implementation meets criteria from the description, like:
-  val testInput = readInput("18Dec_example")
+  val testInput = readInput("19Dec_example")
   check(part1(testInput) == 19114)
   check(part2(testInput) == 167409079868000L)
 
-  val input = readInput("18Dec_own")
+  val input = readInput("19Dec_own")
   part1(input).println()
   part2(input).println()
 }
