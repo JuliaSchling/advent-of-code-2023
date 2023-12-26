@@ -2,9 +2,10 @@ import kotlin.math.min
 
 class Pattern(
   val pattern: List<String>,
-  val wrongVerticalMirrorTheories: MutableList<Int> = mutableListOf(),
-  val wrongHorizontalMirrorTheories: MutableList<Int> = mutableListOf(),
-  var currentWorkingCandidate: Int? = null,
+  var verticalMirror: Int? = null,
+  var horizontalMirror: Int? = null,
+  var verticalMirrorAfterSmudge: Int? = null,
+  var horizontalMirrorAfterSmudge: Int? = null,
 )
 
 fun main() {
@@ -40,7 +41,7 @@ fun main() {
     return patterns
   }
 
-  fun findMirrorCandidate(line: String, patternDto: Pattern, wrongTheoriesRef: MutableList<Int>): Boolean {
+  fun findMirrorCandidate(line: String, currentWorkingCandidate: IntBag, wrongTheoriesRef: MutableList<Int>): Boolean {
     val stack = ArrayDeque<Char>()
 
     var inStackingMode = true
@@ -77,7 +78,7 @@ fun main() {
         } else {
           // we reached the end of the stack, it's empty again. And no errors. This could be a mirror.
           // -> test theory on next lines. If it doesn't work, start over at first line
-          patternDto.currentWorkingCandidate = mirrorTheory
+          currentWorkingCandidate.set(mirrorTheory)
           return true
         }
       }
@@ -91,7 +92,7 @@ fun main() {
     } else {
       // still in popping mode, no errors so far. Could be a mirror, e.g. .#.##.
       // -> test theory on next lines. If it doesn't work, start over at first line
-      patternDto.currentWorkingCandidate = mirrorTheory
+      currentWorkingCandidate.set(mirrorTheory)
       true
     }
   }
@@ -137,73 +138,145 @@ fun main() {
     return true
   }
 
-  fun part1(input: List<String>): Int {
-    // separate patterns
-    val patterns: List<Pattern> = getPatternsFromInput(input)
-    var patternCounter = 0
+  fun findVerticalMirror(pattern: List<String>, wrongVerticalMirrorTheory: Int? = null): Int? {
+    val wrongVerticalMirrorTheories: MutableList<Int> = mutableListOf()
+    wrongVerticalMirrorTheory?.let { wrongVerticalMirrorTheories.add(wrongVerticalMirrorTheory) }
 
-    // search each pattern for mirrors
-    var totalResult = 0
-    patterns.forEach patternLoop@{ patternDto ->
-      patternCounter++
+    val currentWorkingCandidate = IntBag(null)
+    var keepSearchingThisRow = true
 
-      // first search for vertical mirror on rows
-      var keepSearchingThisRow = true
-      while (keepSearchingThisRow) {
-        keepSearchingThisRow = findMirrorCandidate(patternDto.pattern[0], patternDto, patternDto.wrongVerticalMirrorTheories)
+    while (keepSearchingThisRow) {
+      keepSearchingThisRow = findMirrorCandidate(pattern[0], currentWorkingCandidate, wrongVerticalMirrorTheories)
 
-        if (patternDto.currentWorkingCandidate != null) {
-          val currentCandidate: Int = patternDto.currentWorkingCandidate!!
+      if (currentWorkingCandidate.number != null) {
+        val currentCandidate: Int = currentWorkingCandidate.number!!
 
-          if (testTheoryOnAllRows(currentCandidate, patternDto.pattern)) {
-            // a working theory :) add to total result and stop at this pattern
-            // println("RESULT : vertical result for pattern $patternCounter : $currentCandidate")
-            totalResult += currentCandidate
-            return@patternLoop
+        if (testTheoryOnAllRows(currentCandidate, pattern)) {
+          return currentCandidate
 
-          } else {
-            // nope. return to start.
-            patternDto.wrongVerticalMirrorTheories.add(currentCandidate)
-            patternDto.currentWorkingCandidate = null
-          }
+        } else {
+          // nope. return to start.
+          wrongVerticalMirrorTheories.add(currentCandidate)
+          currentWorkingCandidate.set(null)
         }
       }
-
-      // couldn't find vertical mirror on rows, continue searching horizontal mirror on columns
-      var keepSearchingThisColumn = true
-      while (keepSearchingThisColumn) {
-        keepSearchingThisColumn =
-          findMirrorCandidate(getColumnAt(patternDto.pattern, 0), patternDto, patternDto.wrongHorizontalMirrorTheories)
-
-        if (patternDto.currentWorkingCandidate != null) {
-          val currentCandidate: Int = patternDto.currentWorkingCandidate!!
-
-          if (testTheoryOnAllColumns(currentCandidate, patternDto.pattern)) {
-            // a working theory :) add to total result and stop at this pattern
-            // println("RESULT : horizontal result for pattern $patternCounter : $currentCandidate")
-            totalResult += currentCandidate * 100
-            return@patternLoop
-
-          } else {
-            // nope. return to start.
-            patternDto.wrongHorizontalMirrorTheories.add(currentCandidate)
-            patternDto.currentWorkingCandidate = null
-          }
-        }
-      }
-
-      println("ERROR : couldn't find any mirror for pattern $patternCounter. There must be something wrong.")
-      println("pattern: \n${patternDto.pattern}")
     }
 
+    return null
+  }
+
+  fun findHorizontalMirror(pattern: List<String>, wrongHorizontalMirrorTheory: Int? = null): Int? {
+    val wrongHorizontalMirrorTheories: MutableList<Int> = mutableListOf()
+    wrongHorizontalMirrorTheory?.let { wrongHorizontalMirrorTheories.add(wrongHorizontalMirrorTheory) }
+
+    val currentColumn = getColumnAt(pattern, 0)
+    val currentWorkingCandidate = IntBag(null)
+    var keepSearchingThisColumn = true
+
+    while (keepSearchingThisColumn) {
+      keepSearchingThisColumn = findMirrorCandidate(currentColumn, currentWorkingCandidate, wrongHorizontalMirrorTheories)
+
+      if (currentWorkingCandidate.number != null) {
+        val currentCandidate: Int = currentWorkingCandidate.number!!
+
+        if (testTheoryOnAllColumns(currentCandidate, pattern)) {
+          return currentCandidate
+
+        } else {
+          // nope. return to start.
+          wrongHorizontalMirrorTheories.add(currentCandidate)
+          currentWorkingCandidate.set(null)
+        }
+      }
+    }
+
+    return null
+  }
+
+  fun findMirrorForEachPattern(patterns: List<Pattern>) {
+    var patternCounter = 0
+    patterns.forEach { patternDto ->
+      patternCounter++
+
+      patternDto.verticalMirror = findVerticalMirror(patternDto.pattern)
+
+      if (patternDto.verticalMirror == null) {
+        patternDto.horizontalMirror = findHorizontalMirror(patternDto.pattern)
+      }
+
+      if (patternDto.verticalMirror == null && patternDto.horizontalMirror == null) {
+        println("ERROR : couldn't find any mirror for pattern $patternCounter. There must be something wrong.")
+      }
+    }
+  }
+
+  fun flip(mutablePattern: MutableList<MutableList<Char>>, i: Int, j: Int) {
+    when (mutablePattern[i][j]) {
+      '.' -> mutablePattern[i][j] = '#'
+      '#' -> mutablePattern[i][j] = '.'
+    }
+  }
+
+  fun findAlternativeMirrorForEachPattern(patterns: List<Pattern>) {
+    patterns.forEach patternLoop@{ patternDto ->
+
+      val mutablePattern = toCompletelyMutableList(patternDto.pattern)
+
+      for (i in mutablePattern.indices) {
+        for (j in mutablePattern[0].indices) {
+          flip(mutablePattern, i, j)
+
+          patternDto.verticalMirrorAfterSmudge = findVerticalMirror(toCompletelyImmutableList(mutablePattern), patternDto.verticalMirror)
+
+          if (patternDto.verticalMirrorAfterSmudge == null) {
+            patternDto.horizontalMirrorAfterSmudge =
+              findHorizontalMirror(toCompletelyImmutableList(mutablePattern), patternDto.horizontalMirror)
+          }
+
+          if (patternDto.verticalMirrorAfterSmudge != null || patternDto.horizontalMirrorAfterSmudge != null) {
+            return@patternLoop
+          }
+
+          flip(mutablePattern, i, j)
+        }
+      }
+    }
+  }
+
+  fun part1(input: List<String>): Int {
+    val patterns: List<Pattern> = getPatternsFromInput(input)
+
+    findMirrorForEachPattern(patterns)
+
+    var totalResult = 0
+    patterns.forEach { pattern ->
+      pattern.verticalMirror?.let { totalResult += it }
+      pattern.horizontalMirror?.let { totalResult += it * 100 }
+    }
+    return totalResult
+  }
+
+  fun part2(input: List<String>): Int {
+    val patterns: List<Pattern> = getPatternsFromInput(input)
+
+    findMirrorForEachPattern(patterns)
+
+    findAlternativeMirrorForEachPattern(patterns)
+
+    var totalResult = 0
+    patterns.forEach { pattern ->
+      pattern.verticalMirrorAfterSmudge?.let { totalResult += it }
+      pattern.horizontalMirrorAfterSmudge?.let { totalResult += it * 100 }
+    }
     return totalResult
   }
 
   // test if implementation meets criteria from the description, like:
   val testInput = readInput("13Dec_example")
   check(part1(testInput) == 405)
+  check(part2(testInput) == 400)
 
   val input = readInput("13Dec_own")
   part1(input).println()
+  part2(input).println()
 }
-
