@@ -3,6 +3,22 @@ import java.security.MessageDigest
 import kotlin.io.path.Path
 import kotlin.io.path.readLines
 
+class Result(
+    var result: Int = 0
+) {
+    fun add(number: Int) {
+        result += number
+    }
+}
+
+class LongResult(
+    var result: Long = 0
+) {
+    fun add(number: Long) {
+        result += number
+    }
+}
+
 /**
  * Reads lines from the given input txt file.
  */

@@ -5,14 +5,6 @@ class PartNumber(
   val posy2: Int = -1,
 )
 
-class Result(
-  var result: Int = 0
-) {
-  fun add(number: Int) {
-    result += number
-  }
-}
-
 fun MutableList<PartNumber>.addCollectedNumber(collectedNumber: String, linePos: Int, ypos: Int) {
   if (collectedNumber != "") {
     add(
