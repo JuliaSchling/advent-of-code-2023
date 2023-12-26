@@ -1,3 +1,33 @@
+interface Memo<A, B, R> {
+  fun recurse(a: A, b: B): R
+}
+
+abstract class Memoized<A, B, R> {
+  private data class Input<A, B>(
+    val a: A,
+    val b: B
+  )
+
+  private val cache = mutableMapOf<Input<A, B>, R>()
+  private val memo = object : Memo<A, B, R> {
+    override fun recurse(a: A, b: B): R =
+      cache.getOrPut(Input(a, b)) { function(a, b) }
+  }
+
+  protected abstract fun Memo<A, B, R>.function(a: A, b: B): R
+
+  fun execute(a: A, b: B): R = memo.recurse(a, b)
+}
+
+fun <A, B, R> (Memo<A, B, R>.(A, B) -> R).memoize(): (A, B) -> R {
+  val memoized = object : Memoized<A, B, R>() {
+    override fun Memo<A, B, R>.function(a: A, b: B): R = this@memoize(a, b)
+  }
+  return { a, b ->
+    memoized.execute(a, b)
+  }
+}
+
 fun main() {
 
   fun isValid(springReport: String, conditionRecords: List<Int>): Boolean {
@@ -17,7 +47,7 @@ fun main() {
     }
   }
 
-  fun calculate(springReport: String, conditionRecords: List<Int>): Int {
+  fun Memo<String, List<Int>, Long>.calculate(springReport: String, conditionRecords: List<Int>): Long {
     // breaking conditions for recursive loop
     if (conditionRecords.isEmpty()) {
       return if (springReport.contains("#")) {
@@ -52,7 +82,7 @@ fun main() {
       springReport.length
     }
 
-    var result = 0
+    var result: Long = 0
     for (windowStart in startSubSeq..(endSubSeq - maxCondition)) {
       val windowEnd = windowStart + maxCondition
       val window = springReport.substring(windowStart, windowEnd)
@@ -65,9 +95,9 @@ fun main() {
         // we found a valid window
         // call recursively for the parts before and after (leave out one buffer char around the window)
         val substr1 = if (windowStart != 0) springReport.substring(0, windowStart - 1) else ""
-        val result1 = calculate(substr1, part1)
+        val result1 = recurse(substr1, part1)
         val substr2 = if (windowEnd + 1 <= springReport.length) springReport.substring(windowEnd + 1, springReport.length) else ""
-        val result2 = calculate(substr2, part2)
+        val result2 = recurse(substr2, part2)
 
         result += (result1 * result2)
       }
@@ -75,8 +105,8 @@ fun main() {
     return result
   }
 
-  fun part1(input: List<String>): Int {
-    var total = 0
+  fun part1(input: List<String>): Long {
+    var total: Long = 0
     input.forEach { line ->
       val s = line.split(" ")
       val springReport = s[0]
@@ -91,7 +121,33 @@ fun main() {
       // val numberOfDotsThatNeedToBeInserted = numberOfQuestionMarks - numberOfHashtagsThatNeedToBeInserted
       // isValid(springReport, conditionRecords)
 
-      val result = calculate(springReport, conditionRecords)
+      val calculation = Memo<String, List<Int>, Long>::calculate.memoize()
+      val result = calculation(springReport, conditionRecords)
+      total += result
+    }
+
+    return total
+  }
+
+  fun part2(input: List<String>): Long {
+    var total: Long = 0
+    input.forEach { line ->
+      val s = line.split(" ")
+      val springReport = s[0]
+      val conditionRecords = s[1].split(",").map { it.toInt() }
+
+      val unfoldedSpringReport = "$springReport?$springReport?$springReport?$springReport?$springReport"
+
+      val unfoldedConditionRecords = mutableListOf<Int>()
+      unfoldedConditionRecords.addAll(conditionRecords)
+      unfoldedConditionRecords.addAll(conditionRecords)
+      unfoldedConditionRecords.addAll(conditionRecords)
+      unfoldedConditionRecords.addAll(conditionRecords)
+      unfoldedConditionRecords.addAll(conditionRecords)
+
+      val calculation = Memo<String, List<Int>, Long>::calculate.memoize()
+
+      val result = calculation(unfoldedSpringReport, unfoldedConditionRecords)
       total += result
     }
 
@@ -100,8 +156,10 @@ fun main() {
 
   // test if implementation meets criteria from the description, like:
   val testInput = readInput("12Dec_example")
-  check(part1(testInput) == 21)
+  check(part1(testInput) == 21L)
+  check(part2(testInput) == 525152L)
 
   val input = readInput("12Dec_own")
   part1(input).println()
+  part2(input).println()
 }
